@@ -87,6 +87,10 @@ type DERPRegion struct {
 	// "San Francisco", "Singapore", "Frankfurt", etc.
 	RegionName string
 
+	// Latitude and Longitude are optional float64 geographic coordinates of the region's city.
+	Latitude  float64 `json:",omitempty"`
+	Longitude float64 `json:",omitempty"`
+
 	// Avoid is whether the client should avoid picking this as its home
 	// region. The region should only be used if a peer is there.
 	// Clients already using this region as their home should migrate

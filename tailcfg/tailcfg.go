@@ -680,6 +680,10 @@ type Location struct {
 	// IATA, ICAO or ISO 3166-2 codes are recommended ("YSE")
 	CityCode string `json:",omitempty"`
 
+	// Latitude, Longitude are optional float64 polar coordinates of the city.
+	Latitude  float64 `json:",omitempty"`
+	Longitude float64 `json:",omitempty"`
+
 	// Priority determines the order of use of an exit node when a
 	// location based preference matches more than one exit node,
 	// the node with the highest priority wins. Nodes of equal
