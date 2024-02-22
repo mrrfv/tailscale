@@ -4,25 +4,38 @@
 import { useCallback, useEffect, useState } from "react"
 import { apiFetch, setSynoToken } from "src/api"
 
-export enum AuthType {
-  synology = "synology",
-  tailscale = "tailscale",
-}
-
 export type AuthResponse = {
-  authNeeded?: AuthType
-  canManageNode: boolean
   serverMode: "login" | "readonly" | "manage"
+  authorized: boolean
   viewerIdentity?: {
     loginName: string
     nodeName: string
     nodeIP: string
     profilePicUrl?: string
+    capabilities: { [key in PeerCapability]: boolean }
   }
+  needsSynoAuth?: boolean
 }
 
-// useAuth reports and refreshes Tailscale auth status
-// for the web client.
+export type PeerCapability = "*" | "ssh" | "subnets" | "exitnodes" | "account"
+
+/**
+ * canEdit reports whether the given auth response allows the viewer to
+ * edit the given capability.
+ */
+export function canEdit(cap: PeerCapability, auth: AuthResponse): boolean {
+  if (!auth.authorized || !auth.viewerIdentity) {
+    return false
+  }
+  if (auth.viewerIdentity.capabilities["*"] === true) {
+    return true // can edit all features
+  }
+  return auth.viewerIdentity.capabilities[cap] === true
+}
+
+/**
+ * useAuth reports and refreshes Tailscale auth status for the web client.
+ */
 export default function useAuth() {
   const [data, setData] = useState<AuthResponse>()
   const [loading, setLoading] = useState<boolean>(true)
@@ -33,18 +46,16 @@ export default function useAuth() {
     return apiFetch<AuthResponse>("/auth", "GET")
       .then((d) => {
         setData(d)
-        switch (d.authNeeded) {
-          case AuthType.synology:
-            fetch("/webman/login.cgi")
-              .then((r) => r.json())
-              .then((a) => {
-                setSynoToken(a.SynoToken)
-                setRanSynoAuth(true)
-                setLoading(false)
-              })
-            break
-          default:
-            setLoading(false)
+        if (d.needsSynoAuth) {
+          fetch("/webman/login.cgi")
+            .then((r) => r.json())
+            .then((a) => {
+              setSynoToken(a.SynoToken)
+              setRanSynoAuth(true)
+              setLoading(false)
+            })
+        } else {
+          setLoading(false)
         }
         return d
       })
@@ -73,7 +84,7 @@ export default function useAuth() {
   useEffect(() => {
     loadAuth().then((d) => {
       if (
-        !d?.canManageNode &&
+        !d?.authorized &&
         new URLSearchParams(window.location.search).get("check") === "now"
       ) {
         newSession()
