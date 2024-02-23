@@ -528,6 +528,7 @@ main() {
 			set -x
 			$SUDO apk add tailscale
 			$SUDO rc-update add tailscale
+			$SUDO rc-update start tailscale
 			set +x
 			;;
 		xbps)
